@@ -68,7 +68,7 @@ function verifyWithPublicKey(data, signature, publicKey) {
 const depositJayapay = async (req, res) => {
     try {
         const {number, bankCode, name, mobile, email, money, description} = req.body;
-        const notifyUrl = "https://domainkamu.com/wallet/jayapay-callback"; // ganti dengan URL kamu
+        const notifyUrl = "https://pasificrim.live/wallet/jayapay-callback"; // ganti dengan URL kamu
 
         const {params, params_str} = buildJayapayParams({number, bankCode, name, mobile, email, money, description, notifyUrl});
         const sign = signWithPrivateKey(params_str, jayapayConfig.merchantPrivateKey);
@@ -95,30 +95,18 @@ const depositJayapay = async (req, res) => {
 };
 
 // --------------- END ENDPOINT JAYAPAY ---------------
-fetch('/wallet/deposit-jayapay', {
-  method: 'POST',
-  headers: {'Content-Type': 'application/json'},
-  body: JSON.stringify({
-    number: '123456',
-    bankCode: '014',
-    name: 'Neo',
-    mobile: '082112345678',
-    email: 'test@test.com',
-    money: '20000',
-    description: 'Deposit via Jayapay'
-  })
-})
-.then(res => res.json())
-.then(data => {
-  // Tampilkan QRIS/VA/URL ke user
-  if(data.qr_url) {
-    window.location.href = data.qr_url;
-  } else if(data.qr_image) {
-    document.getElementById('qris').src = data.qr_image;
-  } else {
-    alert(JSON.stringify(data));
-  }
-});
+
+
+// paymentController.js
+const paymentGateways = require('./controllers/payment');
+
+// Contoh endpoint di Express/Router:
+async function depositJayapay(req, res) {
+  return paymentGateways.jayapay.depositJayapay(req, res);
+}
+async function depositWowpay(req, res) {
+  return paymentGateways.wowpay.depositWowpay(req, res);
+}
 
 const token = '8044580404:AAER7Wx0BKPmDtskjZA5dDD2oZHLzh0MXnE';
 const bot = new TelegramBot(token, { polling: true });
@@ -905,4 +893,5 @@ module.exports = {
     addManualUSDTPaymentRequest,
     initiateManualUSDTPayment,
     depositJayapay,
+  depositWowpay,
 }
