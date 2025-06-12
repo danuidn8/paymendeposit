@@ -1,112 +1,9 @@
 import connection from "../config/connectDB";
-import forge from "node-forge"; //
 import axios from 'axios';
 import moment from "moment";
 import crypto from "crypto";
 import TelegramBot from 'node-telegram-bot-api';
 import querystring from "querystring"
-
-
-// === KONFIGURASI JAYAPAY ===
-const jayapayConfig = {
-    merchantCode: 'S820250606133910000003',
-    merchantNumber: 'YN10317',
-    platformPublicKey: `-----BEGIN PUBLIC KEY-----
-MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCYsMXxaWB2mdz1IvGzrl7mH5faZaBlgR6hsuPEpM9W2+jT24o1w5iEcQ9VqOKvnKfotaXQWs6lQbMqtxmV4OlBqc5Nx/wHYCiUT/M2fIF5yQWfOS75cxVv90Vk1UnEEeDSPuEEbIsXlYdqct+P7EPOUSVes3T9Bx/UebZzuSdyrQIDAQAB
------END PUBLIC KEY-----`,
-    merchantPrivateKey: `-----BEGIN PRIVATE KEY-----
-ISI_PRIVATE_KEY_KAMU_DISINI
------END PRIVATE KEY-----`, // Ganti dengan private key kamu (PEM)
-    key: 'KVGFDUF6AAM3OYNN',
-    account: 'FinePay@YN10317'
-};
-// === AKHIR KONFIG JAYAPAY ===
-
-// --------------- JAYAPAY FUNGSI UTILITY ---------------
-
-function buildJayapayParams(input) {
-    const dateTime = moment().format('YYYYMMDDHHmmss');
-    const orderNum = 'T' + dateTime + Math.floor(Math.random() * 10000); // Biar unik
-    const params = {
-        merchantCode: jayapayConfig.merchantCode,
-        orderType: '0',
-        method: 'Transfer',
-        orderNum,
-        money: String(input.money),
-        feeType: '1',
-        dateTime,
-        number: input.number,
-        bankCode: input.bankCode,
-        name: input.name,
-        mobile: input.mobile,
-        email: input.email,
-        notifyUrl: input.notifyUrl,
-        description: input.description
-    };
-    const sortedKeys = Object.keys(params).sort();
-    let params_str = '';
-    for (let k of sortedKeys) params_str += params[k];
-    return {params, params_str};
-}
-
-function signWithPrivateKey(data, privateKey) {
-    const signer = crypto.createSign('RSA-SHA1');
-    signer.update(data, 'utf8');
-    return signer.sign(privateKey, 'base64');
-}
-
-function verifyWithPublicKey(data, signature, publicKey) {
-    const verifier = crypto.createVerify('RSA-SHA1');
-    verifier.update(data, 'utf8');
-    return verifier.verify(publicKey, signature, 'base64');
-}
-
-// --------------- END JAYAPAY UTILITY ---------------
-
-// --------------- ENDPOINT DEPOSIT JAYAPAY ---------------
-// Contoh input req.body: { number, bankCode, name, mobile, email, money, description }
-const depositJayapay = async (req, res) => {
-    try {
-        const {number, bankCode, name, mobile, email, money, description} = req.body;
-        const notifyUrl = "https://pasificrim.live/wallet/jayapay-callback"; // ganti dengan URL kamu
-
-        const {params, params_str} = buildJayapayParams({number, bankCode, name, mobile, email, money, description, notifyUrl});
-        const sign = signWithPrivateKey(params_str, jayapayConfig.merchantPrivateKey);
-
-        params.sign = sign;
-        const response = await axios.post(
-            "https://openapi.jayapayment.com/gateway/cash",
-            params,
-            {headers: {'Content-Type': 'application/json'}}
-        );
-
-        if (response.status === 200) {
-            const result = response.data;
-            // (Opsional) verifikasi signature Jayapay
-            // const valid = verifyWithPublicKey(result.platSign, result.platSign, jayapayConfig.platformPublicKey);
-            return res.status(200).json(result);
-        } else {
-            return res.status(400).json({message: "Jayapay error", detail: response.data});
-        }
-    } catch (e) {
-        console.log(e);
-        res.status(500).json({message: "Internal error", detail: e.message});
-    }
-};
-
-// --------------- END ENDPOINT JAYAPAY ---------------
-
-
-// paymentController.js
-const paymentGateways = require('./controllers/payment');
-
-// Contoh endpoint di Express/Router:
-async function depositJayapay(req, res) {
-  return paymentGateways.jayapay.depositJayapay(req, res);
-}
-async function depositWowpay(req, res) {
-  return paymentGateways.wowpay.depositWowpay(req, res);
-}
 
 const token = '8044580404:AAER7Wx0BKPmDtskjZA5dDD2oZHLzh0MXnE';
 const bot = new TelegramBot(token, { polling: true });
@@ -892,6 +789,4 @@ module.exports = {
     addManualUPIPaymentRequest,
     addManualUSDTPaymentRequest,
     initiateManualUSDTPayment,
-    depositJayapay,
-  depositWowpay,
 }
